@@ -143,7 +143,7 @@ class IBAlgoStrategy(object):
             # Need to do some trailing stop work here...
             
             # Sleep
-            self.ib.sleep(5)
+            #self.ib.sleep(5) #Speed up the runtime
                             
         self.log('Algo no longer running for the day.')
         
@@ -544,7 +544,7 @@ class IBAlgoStrategy(object):
             self.bars_minutes.append(bar_minutes)
         elif bar[-4:] == 'hour' or bar[-5:] == 'hours':
             # hourly bar
-            bar_minutes = int(60*bar.split(' ')[0])
+            bar_minutes = int(60int(*bar.split(' ')[0]))
             self.bars_minutes.append(bar_minutes)
 
         # Initialize dfs for all instruments
