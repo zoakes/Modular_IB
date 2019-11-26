@@ -2,10 +2,8 @@
 Live Trading with IB Modular Design
 Version 1.0.3
 Platform: IB API and TWS
-By: Aaron Eller
-For: Zach Oakes
-www.excelintrading.com
-aaron@excelintrading.com
+By: Aaron Eller & Zach Oakes
+
 
 Revision Notes:
 1.0.0 (07/30/2019) - Initial
@@ -144,7 +142,7 @@ class IBAlgoStrategy(object):
                         self.on_data()
                         
             # Perform other checks once per minute (60s)
-            if 60-(time_since_open%60) <= 5:
+            if True:
                 # Loop through instruments
                 for instrument in self.instruments:
                     # Get current qty
@@ -158,21 +156,27 @@ class IBAlgoStrategy(object):
             # Get current ET time
             now = datetime.datetime.now(tz=pytz.timezone('US/Eastern'))
             
-            # Get number of minutes until the market close
-            close_str = now.strftime('%Y-%m-%d') + "T" \
-                        + self.exchange_close[:2] \
-                        + ":" + self.exchange_close[-2:] + ":00-04:00"
-            close_time = datetime.datetime.strptime(
-                ''.join(close_str.rsplit(':', 1)), '%Y-%m-%dT%H:%M:%S%z')
+            close_hr = int(self.exchange_close[:2])
+            close_min = int(self.exchange_close[-2:])
+            close_time = datetime.datetime(
+                    now.year, now.month, now.day, close_hr, close_min, 
+                    0, 0, pytz.timezone('US/Eastern'))
             min_to_close = int((close_time-now).seconds/60)
+            
+            #EOD Exit
+            if min_to_close <= 30:
+                for instrument in self.instruments:
+                    if qty != 0:
+                        self.log('Exiting position in (EOD): {}'.format(instrument.symbol))
+                        self.go_flat(instrument)
     
             # Check for exchange closing time
             if min_to_close <= 0:
-                log('The market is now closed: {}'.format(now))
+                self.log('The market is now closed: {}'.format(now))
                 break
             
             # Sleep
-            self.ib.sleep(5)
+            #self.ib.sleep(5) #Speed up by commenting.
                             
         self.log('Algo no longer running for the day.')
         
@@ -353,7 +357,7 @@ class IBAlgoStrategy(object):
             profit = (mid-cost_basis)*qty
         elif qty < 0:
             # Short position
-            profit = (cost_basis-mid)*qty
+            profit = (cost_basis-mid)*abs(qty)
         
         # Check if the stop loss is triggered
         if profit <= -abs(SL):
@@ -789,7 +793,7 @@ class IBAlgoStrategy(object):
             self.bars_minutes.append(bar_minutes)
         elif bar[-4:] == 'hour' or bar[-5:] == 'hours':
             # hourly bar
-            bar_minutes = int(60*bar.split(' ')[0])
+            bar_minutes = int(60*int(bar.split(' ')[0]))
             self.bars_minutes.append(bar_minutes)
 
         # Initialize dfs for all instruments
@@ -1103,7 +1107,7 @@ if __name__ == '__main__':
     print(' vega  = {}'.format(vega))
     print(' theta = {}'.format(theta))
     
-# Example how to setup an option spread contract
+# Example how to setup an option spread contract -- TESTING 
     # Get option legs for bull option spread
     option1 = algo.instruments[0]
     option2 = algo.instruments[1]
@@ -1123,6 +1127,6 @@ if __name__ == '__main__':
     #algo.limit_order(contract, "BUY", 1, spread_ask)
     
     
-    # Run algo for the day
+    # Run algo for the day -- UNCOMMENT TO RUN 
     #algo.run()
 
